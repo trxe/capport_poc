@@ -1,15 +1,18 @@
 transform:
 
-  # Only retain the player _id
+  # Only retain the player _id from my old mongodb
   cs_player_ids_to_nhl_landing_urls:
     task: mapping
     mapping: 
       csid: _id
-      url: 
+      url: # template: format the id into the template
         template: "https://api-web.nhle.com/v1/player/%s/landing"
-        args: id
+        args: id # always the key from the previous data structure
+        # unless it's supposed to be a literal, then parse "`my_literal" 
+        # i.e. literals have the backtick in front
 
   # Get fresh NHL data
+  # example: https://api-web.nhle.com/v1/player/8476453/landing
   nhl_player_to_person:
     task: mapping
     mapping:
@@ -31,8 +34,7 @@ transform:
     # the program needs to keep track of the mapping
       
   nhl_player_to_player:
-    src_label: nhl_player
-    dst_model: player
+    task: mapping
     mapping:
       person_id: csid # from the previous step
       player_id: playerId

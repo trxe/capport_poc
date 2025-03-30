@@ -1,5 +1,4 @@
 import argparse
-import datetime as dt
 import os
 from fnmatch import fnmatch
 from pathlib import Path

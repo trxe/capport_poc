@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Callable
+from typing import Callable, Optional
 
 from capport.core.results import PipelineResults
 from capport.tools.constants import TAKE_ALL_KEYWORD
@@ -20,6 +20,7 @@ class PipelineNode:
     default_callable: Callable = _dummy_fn
 
     def _get_node_template(self, use: str, node_type: PipelineNodeType) -> Callable:
+        print(use)
         if node_type == PipelineNodeType.TRANSFORM:
             print("lookup transformtable for task")
         elif node_type == PipelineNodeType.SOURCE:
@@ -34,14 +35,15 @@ class PipelineNode:
         use: str,
         node_type: str | PipelineNodeType,
         label: str,
-        take_from: dict[str, str] | str = {},
-        args: dict = {},
+        take_from: Optional[dict[str, str] | str] = None,
+        args: Optional[dict] = None,
     ):
         self.label = label
         self.node_type = node_type if isinstance(node_type, PipelineNodeType) else PipelineNodeType[node_type.upper()]
         self.template_name = use
+        take_from = take_from or {}
         self.take_from = take_from if take_from == TAKE_ALL_KEYWORD else take_from
-        self.kwargs = args
+        self.kwargs = args or {}
 
     def is_source(self) -> bool:
         return self.node_type == PipelineNodeType.SOURCE
@@ -51,7 +53,6 @@ class PipelineNode:
 
     # The coroutine run by results itself
     async def run(self, results: PipelineResults):
-        # waits for events
         # WARNING: results are by reference, nothing is deepcopied
         # ONLY in this poc, an available result is guaranteed to be immutable after being produced.
         # if there are bugs to do with unstable results, please come back to this
@@ -60,7 +61,7 @@ class PipelineNode:
         else:
             srcs = list(self.take_from.values())
             args = await results.get_all(srcs)
-            print('args', args)
+            print("args", args)
         kwargs = self.kwargs
         use = self._get_node_template(self.template_name, self.node_type)
         await results.exec(self.label, use(*args, **kwargs))

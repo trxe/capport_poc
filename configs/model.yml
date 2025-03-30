@@ -19,7 +19,7 @@ model:
     person_id:
       type: uuid
       constraints: [primary, foreign, indexed]
-    nhl_player_id:
+    nhl_player_id?: # some guys simply don't have id yet
       type: int
       constraints: [unique, indexed]
     shoots_catches:
@@ -38,7 +38,7 @@ model:
   agent:
 
 
-  nicknames:
+  nickname:
     person_id: uuid
     nickname: str
 

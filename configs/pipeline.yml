@@ -4,12 +4,18 @@ pipeline:
       node_type: SOURCE
       use: from_config
       args: 
-        result: [{'id': 1}, {'id': 1}, {'id': 1}]
+        result: [{'id': 1}, {'id': 2}, {'id': 3}]
     - label: cs_player_ids_df
       node_type: TRANSFORM
       use: into_df
       take_from: 
         data: cs_player_ids
+    # - label: store_cs_player_ids
+    #   node_type: SINK
+    #   use: postgres
+    #   take_from: 
+    #     data: cs_player_ids
+    #     model_name: <model_name_in_registry>
 
   # each pipeline item is a node
   # bulk_player_data:
