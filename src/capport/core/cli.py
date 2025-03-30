@@ -1,17 +1,18 @@
 import argparse
 import datetime as dt
-import fnmatch
 import os
+from fnmatch import fnmatch
 from pathlib import Path
 
-import config as cfg
 import yaml
+
+import capport.config.common as cfg_common
 
 
 class ConfigPack:
     CONFIG_FILE_EXTS = ["*.yml", "*.yaml"]
-    CONFIG_PARSER: dict[str, cfg.ConfigParser] = {
-        "model": cfg.ModelTable,
+    CONFIG_PARSER: dict[str, cfg_common.ConfigParser] = {
+        "model": None,
         "transform": None,
         "services": None,  # clients/client-wrappers to access services
         "filter": None,
@@ -26,7 +27,7 @@ class ConfigPack:
                 for ext in self.CONFIG_FILE_EXTS:
                     if fnmatch(name, ext):
                         self.filepaths.append(Path(path, name))
-        self.collated_configs = {key: [] for key in self.CONFIG_PARSER.keys()}
+        self.collated_configs = {key: [] for key in self.CONFIG_PARSER}
         for fp in self.filepaths:
             with open(fp, "r") as file:
                 conf = yaml.safe_load(file)
@@ -38,7 +39,7 @@ class ConfigPack:
     def parse(self, config_key: str) -> None:
         if config_key not in self.CONFIG_PARSER:
             raise Exception(f"{config_key} not a valid configurable")
-        elif not self.CONFIG_PARSER.get(config_key):
+        if not self.CONFIG_PARSER.get(config_key):
             raise Exception(
                 f"{config_key}'s parser isn't implemented/recognised by ConfigPack yet"
             )
