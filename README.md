@@ -61,13 +61,13 @@ should do is contained there
 1. What are you even doing?
     - secret
 
-2. You may notice this looks like what Airflow does so why not just use Airflow?
+2. This looks like what Airflow does so why not just use Airflow?
     - It's more fun building your own Airflow
     - I would prefer for this to be yaml configurable so non-programmers can 
     maintain the pipelines
     - We're not sticking with python in the long run, this is just the POC
 
-3. Where should the registries go
+3. Where should the registries go?
     - Not in config, they should be in their individual folders
         - model
         - pipeline
@@ -82,6 +82,21 @@ should do is contained there
     - **Similarly there should be one for sink tasks.**
     - eventually if we need templated tasks for either, 
     we'll need to create registries like "transforms" for both sources and sinks.
+
+5. How does the one-shot pipeline runner work?
+    - The pipeline packs each **task** into a **node** with all the `args` and 
+    `kwargs` it needs to run. As a principle, the `args` are the results from 
+    previous stages and the `kwargs` are the values passed in by the config.
+    - The node finds the correct source/sink/transform callable task and 
+    prepares the correct coroutine task for running.
+    - Each node will have to wait for their results to be ready (i.e. put 
+    onto the `PipelineResults` structure.), using `results.get_all`
+        - Q: Why a shared structure? doesn't the mutex acqing slow stuff down?
+        - A: yes, but we're prioritizing debugging and centralizing the result 
+        data. when we do our non-poc version we can do immediately logging 
+        return values/message passing between the nodes instead.
+    - upon the dependency events' completion, a node begins to operate and writes
+    to the `PipelineResults` all using the `node.exec` method.
 
 ## Immediate todo:
 
