@@ -1,36 +1,38 @@
 [build-system]
-requires = ["setuptools>=70.0"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "capport_poc"
-version = "0.0.1"
 authors = [{ name = "trxe", email = "peixianwong@gmail.com" }]
 description = "POC for data pipeline framework"
 readme = "README.md"
 requires-python = ">=3.10"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent",
-    "License :: OSI Approved :: MIT License",
-]
-dependencies = [
-    "pymongo",
-    "pytz",
-    "requests",
-    "psycopg",
-    "polars",
-    "isort",
-    "black",
-    "pylint",
-    "pyyaml",
-    "pytest",
-]
+dynamic = ["version"]
+dependencies = ["pymongo", "pytz", "requests", "psycopg", "polars", "pyyaml"]
 
-[project.urls]
-# Homepage = "https://github.com/pypa/sampleproject"
-# Issues = "https://github.com/pypa/sampleproject/issues"
+[project.optional-dependencies]
+dev = ["pytest", "pylint", "black", "isort"]
+
+[tool.setuptools.dynamic]
+version = { file = ["version.txt"] }
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+line_length = 120
 
 [tool.pylint.'MESSAGES CONTROL']
 max-line-length = 120
-disable = "too-many-arguments,missing-class-docstring,missing-module-docstring,missing-function-docstring,unspecified-encoding,broad-exception-raised,broad-exception-caught,too-few-public-methods"
+disable = [
+    "too-many-arguments",
+    "missing-class-docstring",
+    "missing-module-docstring",
+    "missing-function-docstring",
+    "unspecified-encoding",
+    "broad-exception-raised",
+    "broad-exception-caught",
+    "too-few-public-methods",
+]

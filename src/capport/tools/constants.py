@@ -6,3 +6,5 @@ RECOGNIZED_DT_FORMATS = [
     "%H:%M:%S",
     "%H:%M:%S",
 ]
+
+TAKE_ALL_KEYWORD = "^"

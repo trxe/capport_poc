@@ -14,9 +14,7 @@ class Logger:
         output_dir: Optional[str] = None,
         output_filename: str = "%H%M%S_out.log",
     ):
-        formatter = logging.Formatter(
-            fmt="%(asctime)s - %(levelname)s - %(module)s - %(message)s"
-        )
+        formatter = logging.Formatter(fmt="%(asctime)s - %(levelname)s - %(module)s - %(message)s")
 
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)

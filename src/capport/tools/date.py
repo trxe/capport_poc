@@ -20,6 +20,4 @@ def strptime(datetime_str: str) -> dt.datetime:
             return datetime_val
         except Exception:
             continue
-    raise Exception(
-        f"Invalid datetime: failed to parse '{datetime_str}' as any of [{RECOGNIZED_DT_FORMATS}]"
-    )
+    raise Exception(f"Invalid datetime: failed to parse '{datetime_str}' as any of [{RECOGNIZED_DT_FORMATS}]")
