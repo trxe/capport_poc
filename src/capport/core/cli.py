@@ -14,7 +14,6 @@ class ConfigPack:
         "model": None,
         "transform": None,
         "services": None,  # clients/client-wrappers to access services
-        "filter": None,
         "pipeline": None,
     }
 
@@ -31,8 +30,7 @@ class ConfigPack:
             with open(fp, "r") as file:
                 conf = yaml.safe_load(file)
                 for key, subconfig in conf.items():
-                    # each parser must handle a list of configs,
-                    # i cannot generalise their concatenation
+                    # each file's node is a separate config entry,
                     self.collated_configs.get(key).append(subconfig)
 
     def parse(self, config_key: str) -> None:
@@ -47,7 +45,7 @@ class ConfigPack:
 def get_cli_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="CapPort (POC)",
-        description="Combined gateway for data",
+        description="Configurable data aggregator",
     )
     parser.add_argument("-c", "--config_dir", required=True)
     parser.add_argument("-o", "--output_dir")

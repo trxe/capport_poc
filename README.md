@@ -98,6 +98,10 @@ should do is contained there
     - upon the dependency events' completion, a node begins to operate and writes
     to the `PipelineResults` all using the `node.exec` method.
 
+6. Other than mapping what other templated transforms will there be?
+    - Mainly **filter**. Haven't decided the config yet, but that can wait.
+    - Do not use filter if avoidable (configure the source instead) to minimize data pulled
+
 ## Immediate todo:
 
 - [ ] basic CI/CD (pylint, pytest is enough)
