@@ -16,6 +16,7 @@ classifiers = [
 ]
 dependencies = [
     "pymongo",
+    "pytz",
     "requests",
     "psycopg",
     "polars",
@@ -32,4 +33,4 @@ dependencies = [
 
 [tool.pylint.'MESSAGES CONTROL']
 max-line-length = 120
-disable = "too-many-arguments,missing-class-docstring,missing-module-docstring,missing-function-docstring,unspecified-encoding,broad-exception-raised,too-few-public-methods"
+disable = "too-many-arguments,missing-class-docstring,missing-module-docstring,missing-function-docstring,unspecified-encoding,broad-exception-raised,broad-exception-caught,too-few-public-methods"

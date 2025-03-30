@@ -1,4 +1,4 @@
-DEFAULT_TIMEZONE = 'America/New_York'
+DEFAULT_TIMEZONE = "America/New_York"
 
 RECOGNIZED_DT_FORMATS = [
     "%Y.%m.%d",

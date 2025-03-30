@@ -6,7 +6,8 @@ Does not handle scheduling, only the execution of flows
 (to minimize programming needs).
 
 because this is a POC the performance/stability requirements aren't strict,
-but good to take note of them in our eventual move
+but good to take note of them in our eventual move, which should include 
+more complete config validation
 
 ## Overview
 
@@ -16,7 +17,7 @@ Each node comes with a unique string label, and subsequent children nodes
 
 ## Immediate todo:
 
-Write interfaces for
+write interfaces for
 - node.py
 - pipeline.py
 
@@ -28,5 +29,5 @@ write interfaces for
 - config parsers
 - nhl_interface
 
-Implement
+implement
 - transform/mapping

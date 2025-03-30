@@ -1,17 +1,22 @@
 import logging
 from pathlib import Path
-from typing import Optional 
+from typing import Optional
+
 
 class Logger:
     logger = None
 
     @classmethod
-    def init(cls, 
-             name:str =__name__, 
-             level=logging.DEBUG, 
-             output_dir: Optional[str] = None, 
-             output_filename: str = "%H%M%S_out.log"):
-        formatter = logging.Formatter(fmt="%(asctime)s - %(levelname)s - %(module)s - %(message)s")
+    def init(
+        cls,
+        name: str = __name__,
+        level=logging.DEBUG,
+        output_dir: Optional[str] = None,
+        output_filename: str = "%H%M%S_out.log",
+    ):
+        formatter = logging.Formatter(
+            fmt="%(asctime)s - %(levelname)s - %(module)s - %(message)s"
+        )
 
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
