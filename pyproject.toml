@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=70.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trxe"
+version = "0.0.1"
+authors = [{ name = "trxe", email = "peixianwong@gmail.com" }]
+description = "POC for data pipeline framework"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "pymongo",
+    "requests",
+    "psycopg",
+    "polars",
+    "isort",
+    "black",
+    "pylint",
+]
+
+[project.urls]
+# Homepage = "https://github.com/pypa/sampleproject"
+# Issues = "https://github.com/pypa/sampleproject/issues"
