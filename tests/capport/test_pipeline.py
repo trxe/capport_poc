@@ -126,7 +126,6 @@ class TestPipeline:
             "woops_2": {**input_value, "node_type": PipelineNodeType.TRANSFORM, "node_name": "woops_2"},
             "woops_3": {**input_value, "node_type": PipelineNodeType.SINK, "node_name": "woops_3"},
         }
-        breakpoint()
         assert actual == expected
 
     @pytest.mark.asyncio
@@ -143,5 +142,4 @@ class TestPipeline:
             "woops_3": {**input_value, "node_type": PipelineNodeType.TRANSFORM, "node_name": "woops_3"},
             "woops_sink": {**input_value, "node_type": PipelineNodeType.SINK, "node_name": "woops_sink"},
         }
-        breakpoint()
         assert actual == expected
