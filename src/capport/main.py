@@ -1,7 +1,7 @@
 import asyncio
 
-from capport.pipeline.cli import ConfigPack, get_cli_arg_parser
 from capport.pipeline.pipeline import Pipeline
+from capport.tools.cli import ConfigPack, get_cli_arg_parser
 
 
 def main():
