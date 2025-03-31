@@ -1,7 +1,8 @@
 import asyncio
+from copy import deepcopy
 
-from capport.core.node import PipelineNode
-from capport.core.results import PipelineResults
+from capport.pipeline.node import PipelineNode
+from capport.pipeline.results import PipelineResults
 from capport.tools.logger import Logger
 
 
@@ -24,7 +25,7 @@ class Pipeline:
         if interactive:
             breakpoint()  # pylint:disable=forgotten-debug-statement
 
-    def print_results(self):
+    async def clone_results(self):
         Logger.info(f"Results of {self.name}:")
-        for key, val in self.results.results.items():
-            print(f"\n{key}:\n{val}")
+        async with self.results.results_mutex:
+            return deepcopy(self.results.results)

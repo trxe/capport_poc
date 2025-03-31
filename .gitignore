@@ -1,6 +1,7 @@
 # my ignores
 .logs/
 .venv/
+tests/scratchpad.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

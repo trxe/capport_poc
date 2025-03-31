@@ -9,7 +9,15 @@ description = "POC for data pipeline framework"
 readme = "README.md"
 requires-python = ">=3.10"
 dynamic = ["version"]
-dependencies = ["pymongo", "pytz", "requests", "psycopg", "polars", "pyyaml"]
+dependencies = [
+    "pymongo",
+    "pytz",
+    "requests",
+    "psycopg",
+    "polars",
+    "pyyaml",
+    "pytest_asyncio",
+]
 
 [project.optional-dependencies]
 dev = ["pytest", "pylint", "black", "isort"]

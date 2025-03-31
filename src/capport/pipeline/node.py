@@ -1,8 +1,9 @@
 from enum import Enum
 from typing import Callable, Optional
 
-from capport.core.results import PipelineResults
+from capport.pipeline.results import PipelineResults
 from capport.tools.constants import TAKE_ALL_KEYWORD
+from capport.tools.logger import Logger
 
 
 class PipelineNodeType(Enum):
@@ -11,24 +12,26 @@ class PipelineNodeType(Enum):
     TRANSFORM = "transform"
 
 
-class PipelineNode:
-    @classmethod
-    async def _dummy_fn(cls, *args, **kwargs):
-        print(args, kwargs)
-        return None
+async def _dummy_fn(*args, **kwargs):
+    print(args, kwargs)
+    return None
 
+
+class PipelineNode:
     default_callable: Callable = _dummy_fn
 
     def _get_node_template(self, use: str, node_type: PipelineNodeType) -> Callable:
-        print(use)
+        # do not remove
+        if use == "__noop":
+            # the signature is (_this_node: PipelineNode, **kwargs)
+            return self.default_callable
         if node_type == PipelineNodeType.TRANSFORM:
-            print("lookup transformtable for task")
+            Logger.debug("lookup transformtable for task")
         elif node_type == PipelineNodeType.SOURCE:
-            print("lookup sourcetable for task")
+            Logger.debug("lookup sourcetable for task")
         elif node_type == PipelineNodeType.SINK:
-            print("lookup sinktable for task")
-        # raise Exception("node not found")
-        return self.default_callable
+            Logger.debug("lookup sinktable for task")
+        raise Exception("node not found")
 
     def __init__(
         self,
@@ -57,11 +60,11 @@ class PipelineNode:
         # ONLY in this poc, an available result is guaranteed to be immutable after being produced.
         # if there are bugs to do with unstable results, please come back to this
         if "^" in self.take_from:
-            args = await results.get_all()
+            myargs = await results.get_all()
         else:
             srcs = list(self.take_from.values())
-            args = await results.get_all(srcs)
-            print("args", args)
-        kwargs = self.kwargs
+            deps = await results.get_all(srcs)
+            myargs = {new_label: deps.get(result_label) for new_label, result_label in self.take_from.items()}
+        kwargs = {**self.kwargs, **myargs}
         use = self._get_node_template(self.template_name, self.node_type)
-        await results.exec(self.label, use(*args, **kwargs))
+        await results.exec(self.label, use(**kwargs))

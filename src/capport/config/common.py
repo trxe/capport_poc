@@ -8,7 +8,7 @@ class ConfigParser(ABC):
     @abstractmethod
     def parse_all(cls, config_list: list):
         """
-        The config scraper finds all the configs in a directory under the config type 
+        The config scraper finds all the configs in a directory under the config type
         (model, service, source, transform, pipeline) and combines them into a list
         separated by the original file it was in.
         You validate everything in this method, before handing off each config into `parse`.

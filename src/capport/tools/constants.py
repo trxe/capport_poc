@@ -8,3 +8,5 @@ RECOGNIZED_DT_FORMATS = [
 ]
 
 TAKE_ALL_KEYWORD = "^"
+
+NOOP_KEYWORD = "__noop"

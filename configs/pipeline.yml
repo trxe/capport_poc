@@ -2,12 +2,12 @@ pipeline:
   trial: # self-contained, in the future we may wanna stack pipelines
     - label: cs_player_ids
       node_type: SOURCE
-      use: from_config
+      use: __noop # from_config
       args: 
         result: [{'id': 1}, {'id': 2}, {'id': 3}]
     - label: cs_player_ids_df
       node_type: TRANSFORM
-      use: into_df
+      use: __noop # into_df
       take_from: 
         data: cs_player_ids
     # - label: store_cs_player_ids

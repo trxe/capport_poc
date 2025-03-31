@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 from typing import Coroutine
 
 
@@ -14,15 +15,16 @@ class PipelineResults:
 
     # waits for all active writers to be done, and gets all written results
     async def get_all(self, labels: str | list[str] | None = None):
-        labels = labels or list(self.started.keys())
+        started = [label for label, is_started in self.started.items() if is_started]
+        labels = labels or started
         if isinstance(labels, str):
             labels = [labels]
-        # waiting_for = [ self.completed.get(label) for label in labels ]
-        # asyncio.gather(waiting_for)
         for label in labels:
             await self.completed.get(label).wait()
         # get without data race
-        results = {label: self.results.get(label) for label in labels}
+        # hate that python does this
+        results = {label: deepcopy(self.results.get(label)) for label in labels}
+        print(results)
         return results
 
     # registers as a writer, and triggers the event once complete, then deregisters.
@@ -31,6 +33,7 @@ class PipelineResults:
             self.started[event_label] = True
         result = await coroutine
         async with self.results_mutex:
-            self.results[event_label] = result
+            # hate that python does this
+            self.results[event_label] = deepcopy(result)
             self.completed[event_label].set()
         return result

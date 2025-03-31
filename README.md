@@ -59,7 +59,7 @@ should do is contained there
 ### FAQ
 
 1. What are you even doing?
-    - secret
+    - <redacted>
 
 2. This looks like what Airflow does so why not just use Airflow?
     - It's more fun building your own Airflow
@@ -100,16 +100,21 @@ should do is contained there
 
 6. Other than mapping what other templated transforms will there be?
     - Mainly **filter**. Haven't decided the config yet, but that can wait.
-    - Do not use filter if avoidable (configure the source instead) to minimize data pulled
+    - Do not use filter if avoidable (configure the source instead) to minimize data 
+    pulled
+
+7. Why the packaging and setup?
+    - Probably going to actually use this project for the initial phase
 
 ## Immediate todo:
 
-- [ ] basic CI/CD (pylint, pytest is enough)
-- [ ] create sink tasks folder
+- [x] basic CI/CD (pylint, pytest is enough)
+- [x] create sink tasks folder
+- [x] simple source task: `csv_to_df`
 - [ ] simple source task: `load_json`
 - [ ] simple transform task: `json_to_df`
-- [ ] simple sink task: `df_to_csv`
-- [ ] write node and pipeline tests (rn i think it works but is untested LMAO)
+- [x] simple sink task: `df_to_csv`
+- [x] write node and pipeline tests (rn i think it works but is untested LMAO)
 - [ ] `PipelineParser` / `PipelineRegistry`
 - [ ] `ModelParser` / `ModelRegistry`
 - [ ] `ServiceParser` / `ServiceRegistry`
