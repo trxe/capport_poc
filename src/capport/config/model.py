@@ -27,7 +27,6 @@ This will be used by the `sink` template_tasks e.g.
 
 ---
     - label: store_cs_player
-      node_type: SINK
       use: postgres
       take_from:
         data: cs_player

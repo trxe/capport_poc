@@ -9,32 +9,26 @@ by capport/core/node.py currently, so it doesn't have to happen here.
 
 Nodes are of 3 types: source, sink and transform. All nodes are executed as
 async tasks (currently signle threaded bc I haven't setup MT).
-Each node is of the form:
+Each node is of the either form:
 
 ---
 - label: <unique_node_label>
-  node_type: SOURCE/SINK/TRANSFORM
   use: <template_task>
   args:
     <user_arg_label>: <user_arg_value>
   take_from: # <-- this is mandatory for non-sources, ignored by sources
     <user_arg_label>: <user_arg_value>
-  output_as: # <-- this is mandatory for sinks, optional for non-sinks
-    - type: CSV/PKL/etc
-      filename: <filename>
+- label: <unique_nested_pipeline_label>
+  pipeline: <original_pipeline_name>
+  take_from: 
+    <user_arg_label>: <user_arg_value>
 ---
-
-Currently I haven't done the `output_as` nodes yet because I haven't actually
-written any transform template_tasks.
 
 What is a template_task? They are the tasks that will actually ingest the
 `args`, `take_from` and `output_as` stuff and process the result.
 We will be putting them into ./sources/*, ./sinks/* and ./transforms/*
 
-VERY IMPORTANTLY EVERY TEMPLATE TASK MUST BE ASYNC.
-
-Eventually PipelineParser should validate that the pipeline is a DAG
-(but just trust ourselves for now).
+EVERY TEMPLATE TASK MUST BE ASYNC.
 """
 
 from copy import copy
@@ -44,13 +38,10 @@ from capport.config.common import ConfigParser
 from capport.tools.graph import Edge, Graph, TNode
 from capport.tools.logger import Logger
 
-ALLOWED_NODE_TYPES = ["SOURCE", "TRANSFORM", "SINK"]
-
 
 @dataclass
 class NodeConfig:
     label: str
-    node_type: str
     use: str | None
     args: dict | None
     take_from: dict | None
@@ -64,18 +55,11 @@ class PipelineParser(ConfigParser):
     def assert_valid_stage_config_return_is_final(cls, stage_config: dict) -> bool:
         # shared behaviour
         assert "label" in stage_config
-        assert stage_config.get("node_type") in ALLOWED_NODE_TYPES
-        if stage_config["node_type"] == "SOURCE":
-            if "take_from" in stage_config:
-                Logger.warn(f"take_from is ignored in SOURCE node: {stage_config}")
-        else:
-            assert "take_from" in stage_config
-
         if "use" in stage_config:
             return True  # final i.e. no more unpacking.
         if "pipeline" in stage_config:
             return False  # non-final i.e. pipeline node.
-        raise Exception("Unknown stage type (neither node_type/pipeline)")
+        raise Exception("Unknown stage type (neither task/pipeline)")
 
     @classmethod
     def validate_all(cls, config_pages: list[dict[str, dict]]):
@@ -129,7 +113,6 @@ class PipelineParser(ConfigParser):
                 ukey = f"{'.'.join(label_stack)}.{stage.get('label')}"
                 cls.unique_stages[ukey] = NodeConfig(
                     label=ukey,
-                    node_type=stage.get("node_type"),
                     use=stage.get("use"),
                     args=stage.get("args"),
                     take_from=stage.get("take_from"),
@@ -138,7 +121,6 @@ class PipelineParser(ConfigParser):
                 ukey = f"{'.'.join(label_stack)}.{stage.get('label')}"
                 cls.unique_stages[ukey] = NodeConfig(
                     label=ukey,
-                    node_type="TRANSFORM",  #
                     use="convert_vars",  # TODO: Replace with standard conversion use node name
                     args=stage.get("args"),
                     take_from=stage.get("take_from"),

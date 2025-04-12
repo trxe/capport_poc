@@ -1,29 +1,24 @@
 pipeline:
   trial: # self-contained, in the future we may wanna stack pipelines
     - label: cs_player_ids
-      node_type: SOURCE
       use: __noop # from_config
       args: 
         result: [{'id': 1}, {'id': 2}, {'id': 3}]
     - label: cs_player_ids_df
-      node_type: TRANSFORM
       use: __noop # into_df
       take_from: 
         data: cs_player_ids
     # - label: store_cs_player_ids
-    #   node_type: SINK
     #   use: postgres
     #   take_from: 
     #     data: cs_player_ids
     #     model_name: <model_name_in_registry>
     - label: grab_other
-      node_type: SINK
       pipeline: other
 
   # each pipeline item is a node
   # bulk_player_data:
   #   - label: cs_player_data
-  #     node_type: source # sources and sinks are all services.
   #     use: mongo_csdb # looks for the mongo_csdb service
   #     args: 
   #       table: players
@@ -31,27 +26,22 @@ pipeline:
   #       match: {} # match node
 
   #   - label: nhl_player_urls
-  #     node_type: transform
   #     use: cs_player_ids_to_nhl_landing_urls
   #     take_from: [ cs_player_data ]
 
   #   - label: nhl_players
-  #     node_type: source
   #     use: nhl_api # even this must be a "service"
   #     take_from: [ nhl_player_urls ]
 
   #   - label: cs_person
-  #     node_type: transform
   #     use: nhl_player_to_person
   #     take_from: [ nhl_players ]
 
   #   - label: cs_player
-  #     node_type: transform
   #     use: nhl_player_to_person
   #     take_from: [ nhl_players ]
 
   #   - label: cs_person_upsert
-  #     node_type: sink
   #     use: postgres
   #     take_from: [ cs_person ]
   #     args: 
@@ -60,7 +50,6 @@ pipeline:
   #       model: person
 
   #   - label: cs_player_upsert
-  #     node_type: sink
   #     use: postgres
   #     take_from: [ cs_player ]
   #     args: 
@@ -70,7 +59,6 @@ pipeline:
 
   # get_game_data:
   #   - label: cs_player_data
-  #     node_type: source # sources and sinks are all services.
   #     use: mongo_csdb # looks for the mongo_csdb service
   #     args: 
   #       table: players

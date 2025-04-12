@@ -4,7 +4,7 @@ import pytest
 import pytest_asyncio
 
 from capport.config.pipeline import PipelineParser
-from capport.pipeline.node import PipelineNode, PipelineNodeType
+from capport.pipeline.node import PipelineNode
 from capport.pipeline.pipeline import Pipeline
 from capport.tools.constants import NOOP_KEYWORD
 
@@ -19,7 +19,6 @@ async def select_value_label_type(_node: PipelineNode, **kwargs) -> any:
             if res:
                 response = res
     if isinstance(response, dict):
-        response["node_type"] = _node.node_type
         response["node_name"] = _node.label
     return response
 
@@ -37,14 +36,12 @@ class PipelineBuilder:
     def create_node_config(
         cls,
         label: str,
-        node_type: str,
         args: Optional[dict] = None,
         take_from: Optional[dict] = None,
         use: str = default_use,
     ):
         return {
             "label": label,
-            "node_type": node_type,
             "use": use,
             "args": args or {},
             "take_from": take_from,
@@ -54,14 +51,12 @@ class PipelineBuilder:
     def create_pipeline_node_config(
         cls,
         label: str,
-        node_type: str,
         pipeline: str,
         args: Optional[dict] = None,
         take_from: Optional[dict] = None,
     ):
         return {
             "label": label,
-            "node_type": node_type,
             "pipeline": pipeline,
             "args": args or {},
             "take_from": take_from,
@@ -69,12 +64,11 @@ class PipelineBuilder:
 
     @classmethod
     def branch_to_children(
-        cls, label_prefix: str, node_type: str, select_key: str, count: int, parent_conf: dict
+        cls, label_prefix: str, select_key: str, count: int, parent_conf: dict
     ) -> list[dict]:
         return [
             cls.create_node_config(
                 label=f"{label_prefix}_{idx}",
-                node_type=node_type,
                 args={"select": select_key},  # this becomes kwargs in the node.
                 # i.e. parent must produce a dict with the select_key
                 take_from={"value": parent_conf.get("label")},  # this becomes args in the node.
@@ -83,24 +77,22 @@ class PipelineBuilder:
         ]
 
     @classmethod
-    def merge_to_child(cls, label: str, node_type: str, parent_confs: list[dict]) -> dict:
+    def merge_to_child(cls, label: str, parent_confs: list[dict]) -> dict:
         chosen_idx = len(parent_confs) // 2
         take_from = {("value" if i == chosen_idx else f"{i}"): node.get("label") for i, node in enumerate(parent_confs)}
         return cls.create_node_config(
             label=label,
-            node_type=node_type,
             args={"select": "return_whole_value"},  # this becomes kwargs in the node.
             take_from=take_from,
         )
 
     @classmethod
     def create_single_path(cls, label: str, levels: int, input_value: any) -> list[dict]:
-        nodelist = [cls.create_node_config(label, "source", args={"value": input_value})]
+        nodelist = [cls.create_node_config(label, args={"value": input_value})]
         for i in range(1, levels):
             nodelist.append(
                 cls.create_node_config(
                     f"{label}_{i}",
-                    "transform",
                     args={"select": "?"},
                     take_from={"value": nodelist[-1].get("label")},
                 )
@@ -108,7 +100,6 @@ class PipelineBuilder:
         nodelist.append(
             cls.create_node_config(
                 f"{label}_{levels}",
-                "sink",
                 args={"select": "?"},
                 take_from={"value": nodelist[-1].get("label")},
             )
@@ -117,26 +108,25 @@ class PipelineBuilder:
 
     @classmethod
     def create_branching_layer_with_root_and_sink(cls, label: str, count: int, input_value: any) -> list[dict]:
-        nodelist = [cls.create_node_config(label, "source", args={"value": input_value})]
+        nodelist = [cls.create_node_config(label, args={"value": input_value})]
         children = cls.branch_to_children(
             label,
-            "transform",
             count=count,
             select_key="?",
             parent_conf=nodelist[0],
         )
         nodelist.extend(children)
-        nodelist.append(cls.merge_to_child(label=f"{label}_sink", node_type="sink", parent_confs=children))
+        nodelist.append(cls.merge_to_child(label=f"{label}_sink", parent_confs=children))
         return nodelist
 
 
 class TestPipelineConfig:
     def test_config_single_path_valid(self):
         config = [
-            PipelineBuilder.create_node_config("A", "SOURCE", args={"value": 12}),
-            PipelineBuilder.create_node_config("B", "TRANSFORM", args={"select": "?"}, take_from={"value": "A"}),
-            PipelineBuilder.create_node_config("C", "TRANSFORM", args={"select": "?"}, take_from={"value": "B"}),
-            PipelineBuilder.create_node_config("D", "TRANSFORM", args={"select": "?"}, take_from={"value": "C"}),
+            PipelineBuilder.create_node_config("A", args={"value": 12}),
+            PipelineBuilder.create_node_config("B", args={"select": "?"}, take_from={"value": "A"}),
+            PipelineBuilder.create_node_config("C", args={"select": "?"}, take_from={"value": "B"}),
+            PipelineBuilder.create_node_config("D", args={"select": "?"}, take_from={"value": "C"}),
         ]
 
         def assert_pipeline_config(config_pages):
@@ -156,24 +146,24 @@ class TestPipelineConfig:
 
     def test_config_nested_pipelines_valid(self):
         config_main = [
-            PipelineBuilder.create_node_config("A", "SOURCE", use="a"),
+            PipelineBuilder.create_node_config("A", use="a"),
             # nested pipeline with label identical to label.
             # take_from keys must be unique from the stages in the sub pipeline
-            PipelineBuilder.create_pipeline_node_config("alt", "TRANSFORM", "alt", take_from={"main": "A"}),
-            PipelineBuilder.create_node_config("C", "TRANSFORM", use="c", take_from={"value": "B"}),
-            PipelineBuilder.create_node_config("D", "TRANSFORM", use="d", take_from={"value": "C"}),
+            PipelineBuilder.create_pipeline_node_config("alt", "alt", take_from={"main": "A"}),
+            PipelineBuilder.create_node_config("C", use="c", take_from={"value": "B"}),
+            PipelineBuilder.create_node_config("D", use="d", take_from={"value": "C"}),
         ]
         config_alt = [
-            PipelineBuilder.create_node_config("A", "SOURCE", use="a"),
-            PipelineBuilder.create_node_config("B", "TRANSFORM", use="b", take_from={"value": "main"}),
+            PipelineBuilder.create_node_config("A", use="a"),
+            PipelineBuilder.create_node_config("B", use="b", take_from={"value": "main"}),
             # nested pipeline with label identical to current pipeline label, but pipeline name is different
             PipelineBuilder.create_pipeline_node_config(
-                "alt", "TRANSFORM", "alt2", take_from={"alt": "A", "main": "B", "orig": "main"}
+                "alt", "alt2", take_from={"alt": "A", "main": "B", "orig": "main"}
             ),
         ]
         config_alt2 = [
             PipelineBuilder.create_node_config(
-                "alt2", "TRANSFORM", use="e", take_from={"secondary": "alt", "primary": "main", "orig": "orig"}
+                "alt2", use="e", take_from={"secondary": "alt", "primary": "main", "orig": "orig"}
             ),
         ]
 
@@ -211,10 +201,10 @@ class TestPipeline:
         await pipeline.start(interactive=False)
         actual = await pipeline.clone_results()
         expected = {
-            "woops": {**input_value, "node_type": PipelineNodeType.SOURCE, "node_name": "woops"},
-            "woops_1": {**input_value, "node_type": PipelineNodeType.TRANSFORM, "node_name": "woops_1"},
-            "woops_2": {**input_value, "node_type": PipelineNodeType.TRANSFORM, "node_name": "woops_2"},
-            "woops_3": {**input_value, "node_type": PipelineNodeType.SINK, "node_name": "woops_3"},
+            "woops": {**input_value, "node_name": "woops"},
+            "woops_1": {**input_value, "node_name": "woops_1"},
+            "woops_2": {**input_value, "node_name": "woops_2"},
+            "woops_3": {**input_value, "node_name": "woops_3"},
         }
         assert actual == expected
 
@@ -226,10 +216,10 @@ class TestPipeline:
         await pipeline.start(interactive=False)
         actual = await pipeline.clone_results()
         expected = {
-            "woops": {**input_value, "node_type": PipelineNodeType.SOURCE, "node_name": "woops"},
-            "woops_1": {**input_value, "node_type": PipelineNodeType.TRANSFORM, "node_name": "woops_1"},
-            "woops_2": {**input_value, "node_type": PipelineNodeType.TRANSFORM, "node_name": "woops_2"},
-            "woops_3": {**input_value, "node_type": PipelineNodeType.TRANSFORM, "node_name": "woops_3"},
-            "woops_sink": {**input_value, "node_type": PipelineNodeType.SINK, "node_name": "woops_sink"},
+            "woops": {**input_value, "node_name": "woops"},
+            "woops_1": {**input_value, "node_name": "woops_1"},
+            "woops_2": {**input_value, "node_name": "woops_2"},
+            "woops_3": {**input_value, "node_name": "woops_3"},
+            "woops_sink": {**input_value, "node_name": "woops_sink"},
         }
         assert actual == expected

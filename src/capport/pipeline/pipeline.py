@@ -22,7 +22,6 @@ class Pipeline:
         """
         self.name = name
         self.nodes: dict[str, PipelineNode] = {nc["label"]: PipelineNode(**nc) for nc in node_configs}
-        # self.sinks = [label for label, node in self.nodes.items() if node.is_sink()]
         self.results = PipelineResults(list(self.nodes.keys()))
 
     # async runner.
