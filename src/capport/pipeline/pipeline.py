@@ -1,6 +1,7 @@
 import asyncio
 from copy import deepcopy
 
+from capport.config import PipelineConfig, StageConfig
 from capport.pipeline.node import PipelineNode
 from capport.pipeline.results import PipelineResults
 from capport.tools.logger import Logger
@@ -16,12 +17,9 @@ class Pipeline:
         """
         return True
 
-    def __init__(self, name: str, node_configs: list[dict]):
-        """
-        node_configs must alr be fully unpacked
-        """
-        self.name = name
-        self.nodes: dict[str, PipelineNode] = {nc["label"]: PipelineNode(**nc) for nc in node_configs}
+    def __init__(self, config: PipelineConfig):
+        self.name = config.label
+        self.nodes: dict[str, PipelineNode] = {nc.label: PipelineNode(nc) for nc in config.stages}
         self.results = PipelineResults(list(self.nodes.keys()))
 
     # async runner.

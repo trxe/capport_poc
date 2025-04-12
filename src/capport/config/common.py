@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class ConfigParser(ABC):
@@ -22,6 +23,13 @@ class ConfigParser(ABC):
 
         Places the keyed map of configs for this config type into a Registry.
         The Registry will be queried to pull the correct components for usage.
+        """
+
+    @classmethod
+    @abstractmethod
+    def get_config(cls, config_key: str) -> Any:
+        """
+        Returns config found/cached by the config parser in parse_all.
         """
 
     @classmethod

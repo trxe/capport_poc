@@ -2,6 +2,7 @@ from typing import Callable, Optional
 
 from capport.pipeline.results import PipelineResults
 from capport.tools.constants import TAKE_ALL_KEYWORD
+from capport.config import StageConfig
 
 
 async def _dummy_fn(*args, **kwargs):
@@ -24,16 +25,13 @@ class PipelineNode:
 
     def __init__(
         self,
-        use: str,
-        label: str,
-        take_from: Optional[dict[str, str] | str] = None,
-        args: Optional[dict] = None,
+        config: StageConfig
     ):
-        self.label = label
-        self.template_name = use
-        take_from = take_from or {}
+        self.label = config.label
+        self.template_name = config.use
+        take_from = config.take_from or {}
         self.take_from = take_from if take_from == TAKE_ALL_KEYWORD else take_from
-        self.kwargs = args or {}
+        self.kwargs = config.args or {}
 
     async def run(self, results: PipelineResults):
         if "^" in self.take_from:

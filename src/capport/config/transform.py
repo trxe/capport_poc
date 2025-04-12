@@ -1,16 +1,3 @@
-"""
-TransformRegistry:
-
-Configurations for the transform template_tasks.
-
-Inside ./transforms/* there should only be one `mapping` method.
-`mapping` infact actually takes in the mapping config from the
-transforms config file and creates mapping functions, named by their keys,
-that the PipelineRegistry can lookup.
-
-see transform.yml for features required.
-"""
-
 from dataclasses import dataclass
 
 from capport.config.common import ConfigParser
@@ -35,3 +22,12 @@ class TransformParser(ConfigParser):
         cls.configs = {
             name: TransformConfig(label=name, **config) for page in config_pages for name, config in page.items()
         }
+
+    @classmethod
+    def get_config(cls, config_key: str) -> TransformConfig:
+        if config_key not in cls.configs:
+            raise Exception(
+                f"Transform not initialized: {config_key}, not found "
+                f"amongst initialized configs: {list(cls.configs.keys())}"
+            )
+        return cls.configs[config_key]

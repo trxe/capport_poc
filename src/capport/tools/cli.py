@@ -2,6 +2,7 @@ import argparse
 import os
 from fnmatch import fnmatch
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -37,17 +38,25 @@ class ConfigPack:
         self.parse_all("transform")
         self.parse_all("pipeline")
 
-    def parse_all(self, config_key: str) -> None:
-        if config_key not in self.CONFIG_PARSER:
+    @classmethod
+    def _get_config_component(cls, config_key: str) -> None:
+        if config_key not in cls.CONFIG_PARSER:
             raise Exception(f"{config_key} not a valid configurable")
-        if not self.CONFIG_PARSER.get(config_key):
+        if not cls.CONFIG_PARSER.get(config_key):
             raise Exception(f"{config_key}'s parser isn't implemented/recognised by ConfigPack yet")
-        parser = self.CONFIG_PARSER.get(config_key)
+        return cls.CONFIG_PARSER.get(config_key)
+
+    def parse_all(self, config_key: str) -> None:
+        parser = self._get_config_component(config_key)
         config_pages = self.collated_configs.get(config_key)
         if not config_pages:
             return
         parser.validate_all(config_pages)
         parser.parse_all(config_pages)
+
+    def get_config(self, config_key: str, config_name: str) -> Any:
+        parser = self._get_config_component(config_key)
+        return parser.get_config(config_name)
 
 
 def get_cli_arg_parser() -> argparse.ArgumentParser:

@@ -138,6 +138,9 @@ class TestPipelineConfig:
                     for stage in stages
                 ]
             )
+            main_config = PipelineParser.get_config("main")
+            assert main_config.label == "main"
+            assert [s.label for s in main_config.stages] == ["main.A", "main.B", "main.C", "main.D"]
 
         assert_pipeline_config([{"main": config, "alt": config}])
         assert_pipeline_config([{"alt": config}, {"main": config}])
@@ -185,6 +188,18 @@ class TestPipelineConfig:
                     "alt2.alt2",
                 ]
             )
+            main_config = PipelineParser.get_config("main")
+            assert main_config.label == "main"
+            assert [s.label for s in main_config.stages] == [
+                "main.A",
+                "main.alt",
+                "main.alt.A",
+                "main.alt.B",
+                "main.alt.alt",
+                "main.alt.alt.alt2",
+                "main.C",
+                "main.D",
+            ]
 
         assert_pipeline_config([{"main": config_main, "alt": config_alt, "alt2": config_alt2}])
         assert_pipeline_config([{"alt": config_alt}, {"main": config_main, "alt2": config_alt2}])

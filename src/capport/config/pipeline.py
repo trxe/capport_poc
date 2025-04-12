@@ -1,28 +1,6 @@
 """
-PipelineRegistry:
-
 PipelineRegistry will hold a mapping of pipelines to their specs.
 The main pipeline produces results to be written into the output dir.
-
-The pipeline only consists of Nodes. Each node's configuration is parsed
-by capport/core/node.py currently, so it doesn't have to happen here.
-
-Nodes are of 3 types: source, sink and transform. All nodes are executed as
-async tasks (currently signle threaded bc I haven't setup MT).
-Each node is of the either form:
-
----
-- label: <unique_node_label>
-  use: <template_task>
-  args:
-    <user_arg_label>: <user_arg_value>
-  take_from: # <-- this is mandatory for non-sources, ignored by sources
-    <user_arg_label>: <user_arg_value>
-- label: <unique_nested_pipeline_label>
-  pipeline: <original_pipeline_name>
-  take_from:
-    <user_arg_label>: <user_arg_value>
----
 
 What is a template_task? They are the tasks that will actually ingest the
 `args`, `take_from` and `output_as` stuff and process the result.
@@ -39,16 +17,22 @@ from capport.tools.logger import Logger
 
 
 @dataclass
-class NodeConfig:
+class StageConfig:
     label: str
     use: str | None
     args: dict | None
     take_from: dict | None
 
 
+@dataclass
+class PipelineConfig:
+    label: str
+    stages: list[StageConfig]
+
+
 class PipelineParser(ConfigParser):
     pipeline_graph: Graph
-    configs: dict[str, list]
+    configs: dict[str, PipelineConfig]
 
     @classmethod
     def assert_valid_stage_config_return_is_final(cls, stage_config: dict) -> bool:
@@ -97,41 +81,51 @@ class PipelineParser(ConfigParser):
         Builds all unique stages that pipelines later utilize to build.
         At this point the correctness/availability of each stage's requested take_from variables isn't handled yet.
         """
-        cls.unique_stages: dict[str, NodeConfig] = {}
+        cls.unique_stages: dict[str, StageConfig] = {}
         if not cls.pipeline_graph or not cls.configs:
             Logger.warn("Running validate_all first...")
             cls.validate_all(config_pages)
         Logger.log(f"Processing pipelines: {[k.key for k in cls.pipeline_graph.table.values()]}")
 
-        def build_nodes(pipeline: TNode, pipeline_id: str, label_stack: list[str]):
+        def build_nodes(pipeline: TNode, pipeline_id: str, label_stack: list[str], stage_list: list[str]):
             label_stack.append(pipeline_id)
-            stages = [(stage, cls.assert_valid_stage_config_return_is_final(stage)) for stage in pipeline.value]
-            final_stages = [stage for stage, is_final in stages if is_final]
-            nested_pipeline_stages = [stage for stage, is_final in stages if not is_final]
-            for stage in final_stages:
+            for stage in pipeline.value:
                 ukey = f"{'.'.join(label_stack)}.{stage.get('label')}"
                 if ukey in cls.unique_stages:
                     raise Exception(f"Error: pipeline node key collision: {ukey}")
-                cls.unique_stages[ukey] = NodeConfig(
-                    label=ukey,
-                    use=stage.get("use"),
-                    args=stage.get("args"),
-                    take_from=stage.get("take_from"),
-                )
-            for stage in nested_pipeline_stages:
-                ukey = f"{'.'.join(label_stack)}.{stage.get('label')}"
-                if ukey in cls.unique_stages:
-                    raise Exception(f"Error: pipeline node key collision: {ukey}")
-                cls.unique_stages[ukey] = NodeConfig(
-                    label=ukey,
-                    use="convert_vars",  # TODO: Replace with standard conversion use node name
-                    args=stage.get("args"),
-                    take_from=stage.get("take_from"),
-                )
-                # breakpoint()
-                build_nodes(cls.pipeline_graph.table[stage.get("pipeline")], stage.get("label"), label_stack)
+                is_final = cls.assert_valid_stage_config_return_is_final(stage)
+                stage_list.append(ukey)
+                if is_final:
+                    cls.unique_stages[ukey] = StageConfig(
+                        label=ukey,
+                        use=stage.get("use"),
+                        args=stage.get("args"),
+                        take_from=stage.get("take_from"),
+                    )
+                else:
+                    cls.unique_stages[ukey] = StageConfig(
+                        label=ukey,
+                        use="convert_vars",  # TODO: Replace with standard conversion use node name
+                        args=stage.get("args"),
+                        take_from=stage.get("take_from"),
+                    )
+                    build_nodes(
+                        cls.pipeline_graph.table[stage.get("pipeline")], stage.get("label"), label_stack, stage_list
+                    )
             label_stack.pop()
 
+        cls.configs = {}
         label_stack = []
         for pipeline in cls.pipeline_graph.table.values():
-            build_nodes(pipeline, pipeline.key, label_stack)
+            stage_list = []
+            build_nodes(pipeline, pipeline.key, label_stack, stage_list)
+            cls.configs[pipeline.key] = PipelineConfig(pipeline.key, [cls.unique_stages[k] for k in stage_list])
+
+    @classmethod
+    def get_config(cls, config_key: str) -> PipelineConfig:
+        if config_key not in cls.pipeline_graph.table:
+            raise Exception(
+                f"Pipeline not initialized: {config_key}, not found "
+                f"amongst initialized configs: {list(cls.pipeline_graph.table.keys())}"
+            )
+        return cls.configs[config_key]
