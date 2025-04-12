@@ -31,9 +31,10 @@ def record_endpoint_json(url: str, until: dt.datetime, prefix: str, out_dir: str
                 f"Wrote to {fp}, next run at {strftime(curr + dt.timedelta(seconds=interval_s))} in {interval_s}s"
             )
             time.sleep(interval_s)
-        except requests.exceptions.Timeout as e:
+        except requests.exceptions.Timeout:
             Logger.warn(
-                f"Timeout connecting to {url},\nnext run at {strftime(curr + dt.timedelta(seconds=interval_s))} in {interval_s}s"
+                f"Timeout connecting to {url},\nnext run at "
+                f"{strftime(curr + dt.timedelta(seconds=interval_s))} in {interval_s}s"
             )
         finally:
             curr = dt.datetime.now()

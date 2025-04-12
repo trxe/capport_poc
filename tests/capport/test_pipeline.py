@@ -63,9 +63,7 @@ class PipelineBuilder:
         }
 
     @classmethod
-    def branch_to_children(
-        cls, label_prefix: str, select_key: str, count: int, parent_conf: dict
-    ) -> list[dict]:
+    def branch_to_children(cls, label_prefix: str, select_key: str, count: int, parent_conf: dict) -> list[dict]:
         return [
             cls.create_node_config(
                 label=f"{label_prefix}_{idx}",

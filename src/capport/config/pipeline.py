@@ -20,7 +20,7 @@ Each node is of the either form:
     <user_arg_label>: <user_arg_value>
 - label: <unique_nested_pipeline_label>
   pipeline: <original_pipeline_name>
-  take_from: 
+  take_from:
     <user_arg_label>: <user_arg_value>
 ---
 
@@ -31,7 +31,6 @@ We will be putting them into ./sources/*, ./sinks/* and ./transforms/*
 EVERY TEMPLATE TASK MUST BE ASYNC.
 """
 
-from copy import copy
 from dataclasses import dataclass
 
 from capport.config.common import ConfigParser
@@ -111,6 +110,8 @@ class PipelineParser(ConfigParser):
             nested_pipeline_stages = [stage for stage, is_final in stages if not is_final]
             for stage in final_stages:
                 ukey = f"{'.'.join(label_stack)}.{stage.get('label')}"
+                if ukey in cls.unique_stages:
+                    raise Exception(f"Error: pipeline node key collision: {ukey}")
                 cls.unique_stages[ukey] = NodeConfig(
                     label=ukey,
                     use=stage.get("use"),
@@ -119,6 +120,8 @@ class PipelineParser(ConfigParser):
                 )
             for stage in nested_pipeline_stages:
                 ukey = f"{'.'.join(label_stack)}.{stage.get('label')}"
+                if ukey in cls.unique_stages:
+                    raise Exception(f"Error: pipeline node key collision: {ukey}")
                 cls.unique_stages[ukey] = NodeConfig(
                     label=ukey,
                     use="convert_vars",  # TODO: Replace with standard conversion use node name
@@ -132,15 +135,3 @@ class PipelineParser(ConfigParser):
         label_stack = []
         for pipeline in cls.pipeline_graph.table.values():
             build_nodes(pipeline, pipeline.key, label_stack)
-
-    @classmethod
-    def validate(cls, config_id: str):
-        # first validate no duplicate unique_stages at all
-        ukeys = [u.key for u in cls.unique_stages]
-        cls.assert_no_duplicates(ukeys)
-
-        if config_id not in cls.pipeline_graph.table:
-            raise Exception(f"{config_id} not found amongst pipelines: [{cls.pipeline_names}]")
-
-        cls.unique_stage_table = {u.key: u for u in cls.unique_stages}
-        pipeline = cls.pipeline_graph.table.get(config_id).value

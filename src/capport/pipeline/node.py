@@ -1,9 +1,7 @@
-from enum import Enum
 from typing import Callable, Optional
 
 from capport.pipeline.results import PipelineResults
 from capport.tools.constants import TAKE_ALL_KEYWORD
-from capport.tools.logger import Logger
 
 
 async def _dummy_fn(*args, **kwargs):

@@ -6,16 +6,16 @@ from pathlib import Path
 import yaml
 
 import capport.config.common as cfg_common
-from capport.config import PipelineParser
+from capport.config import ModelParser, PipelineParser, TransformParser
 
 
 class ConfigPack:
     CONFIG_FILE_EXTS = ["*.yml", "*.yaml"]
     CONFIG_PARSER: dict[str, cfg_common.ConfigParser] = {
-        "model": None,
-        "transform": None,
+        "model": ModelParser,
+        "transform": TransformParser,
         "services": None,  # clients/client-wrappers to access services
-        "pipeline": None,
+        "pipeline": PipelineParser,
     }
 
     def __init__(self, config_dir: str):
@@ -33,6 +33,9 @@ class ConfigPack:
                 for key, subconfig in conf.items():
                     # each file's node is a separate config entry,
                     self.collated_configs.get(key).append(subconfig)
+        self.parse_all("model")
+        self.parse_all("transform")
+        self.parse_all("pipeline")
 
     def parse_all(self, config_key: str) -> None:
         if config_key not in self.CONFIG_PARSER:
@@ -42,7 +45,7 @@ class ConfigPack:
         parser = self.CONFIG_PARSER.get(config_key)
         config_pages = self.collated_configs.get(config_key)
         if not config_pages:
-            return True
+            return
         parser.validate_all(config_pages)
         parser.parse_all(config_pages)
 

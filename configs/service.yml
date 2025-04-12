@@ -1,18 +1,25 @@
 services:
   mongo_csdb: 
-    endpoint_env_var: DEV_MONGO
-    db: csdb
+    provider: mongo
+    args:
+      endpoint_env_var: DEV_MONGO
+      db: csdb
 
   postgres_nhl_prod: 
-    username: test
-    password_env_var: POSTGRES_NHL_PROD_PW
-    database: nhl
+    provider: postgres
+    args:
+      username: test
+      password_env_var: POSTGRES_NHL_PROD_PW
+      database: nhl
 
   postgres_nhl_dev: 
-    username: trxe
-    password_env_var: POSTGRES_NHL_TRXE_PW
-    database: nhl_dev
+    provider: postgres
+    args:
+      username: trxe
+      password_env_var: POSTGRES_NHL_TRXE_PW
+      database: nhl_dev
 
   # simple wrapper client that takes "url: ..." and 
   # joins the rest of the dict to each resulting fetched json
   nhl_api: 
+    provider: nhl
