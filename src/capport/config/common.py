@@ -6,7 +6,14 @@ class ConfigParser(ABC):
 
     @classmethod
     @abstractmethod
-    def parse_all(cls, config_list: list):
+    def validate_all(cls, config_pages: list):
+        """
+        Validates the combined config_list
+        """
+
+    @classmethod
+    @abstractmethod
+    def parse_all(cls, config_pages: list):
         """
         The config scraper finds all the configs in a directory under the config type
         (model, service, source, transform, pipeline) and combines them into a list
@@ -19,8 +26,25 @@ class ConfigParser(ABC):
 
     @classmethod
     @abstractmethod
-    def parse(cls, config: any):
+    def validate(cls, config_id: str):
         """
-        parses and returns the config.
+        Validates the individual config
+        """
+
+    @classmethod
+    @abstractmethod
+    def parse(cls, config_id: str):
+        """
+        parses and returns the indiv config.
         additional config validation can take place.
         """
+
+    @classmethod
+    def assert_no_duplicates(cls, structure: list | dict):
+        existing = set()
+        duplicates = []
+        for item in structure:
+            if item in existing:
+                duplicates.append(item)
+            existing.add(item)
+        assert not duplicates, f"Duplicate keys found: {duplicates}"

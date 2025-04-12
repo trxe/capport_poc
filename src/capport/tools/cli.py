@@ -6,6 +6,7 @@ from pathlib import Path
 import yaml
 
 import capport.config.common as cfg_common
+from capport.config import PipelineParser
 
 
 class ConfigPack:
@@ -33,13 +34,17 @@ class ConfigPack:
                     # each file's node is a separate config entry,
                     self.collated_configs.get(key).append(subconfig)
 
-    def parse(self, config_key: str) -> None:
+    def parse_all(self, config_key: str) -> None:
         if config_key not in self.CONFIG_PARSER:
             raise Exception(f"{config_key} not a valid configurable")
         if not self.CONFIG_PARSER.get(config_key):
             raise Exception(f"{config_key}'s parser isn't implemented/recognised by ConfigPack yet")
         parser = self.CONFIG_PARSER.get(config_key)
-        parser.parse_all(self.collated_configs.get(config_key, []))
+        config_pages = self.collated_configs.get(config_key)
+        if not config_pages:
+            return True
+        parser.validate_all(config_pages)
+        parser.parse_all(config_pages)
 
 
 def get_cli_arg_parser() -> argparse.ArgumentParser:

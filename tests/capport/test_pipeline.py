@@ -3,6 +3,7 @@ from typing import Optional
 import pytest
 import pytest_asyncio
 
+from capport.config.pipeline import PipelineParser
 from capport.pipeline.node import PipelineNode, PipelineNodeType
 from capport.pipeline.pipeline import Pipeline
 from capport.tools.constants import NOOP_KEYWORD
@@ -50,6 +51,23 @@ class PipelineBuilder:
         }
 
     @classmethod
+    def create_pipeline_node_config(
+        cls,
+        label: str,
+        node_type: str,
+        pipeline: str,
+        args: Optional[dict] = None,
+        take_from: Optional[dict] = None,
+    ):
+        return {
+            "label": label,
+            "node_type": node_type,
+            "pipeline": pipeline,
+            "args": args or {},
+            "take_from": take_from,
+        }
+
+    @classmethod
     def branch_to_children(
         cls, label_prefix: str, node_type: str, select_key: str, count: int, parent_conf: dict
     ) -> list[dict]:
@@ -76,7 +94,7 @@ class PipelineBuilder:
         )
 
     @classmethod
-    def create_single_path(cls, label: str, levels: int, input_value: any):
+    def create_single_path(cls, label: str, levels: int, input_value: any) -> list[dict]:
         nodelist = [cls.create_node_config(label, "source", args={"value": input_value})]
         for i in range(1, levels):
             nodelist.append(
@@ -98,7 +116,7 @@ class PipelineBuilder:
         return nodelist
 
     @classmethod
-    def create_branching_layer_with_root_and_sink(cls, label: str, count: int, input_value: any):
+    def create_branching_layer_with_root_and_sink(cls, label: str, count: int, input_value: any) -> list[dict]:
         nodelist = [cls.create_node_config(label, "source", args={"value": input_value})]
         children = cls.branch_to_children(
             label,
@@ -110,6 +128,78 @@ class PipelineBuilder:
         nodelist.extend(children)
         nodelist.append(cls.merge_to_child(label=f"{label}_sink", node_type="sink", parent_confs=children))
         return nodelist
+
+
+class TestPipelineConfig:
+    def test_config_single_path_valid(self):
+        config = [
+            PipelineBuilder.create_node_config("A", "SOURCE", args={"value": 12}),
+            PipelineBuilder.create_node_config("B", "TRANSFORM", args={"select": "?"}, take_from={"value": "A"}),
+            PipelineBuilder.create_node_config("C", "TRANSFORM", args={"select": "?"}, take_from={"value": "B"}),
+            PipelineBuilder.create_node_config("D", "TRANSFORM", args={"select": "?"}, take_from={"value": "C"}),
+        ]
+
+        def assert_pipeline_config(config_pages):
+            PipelineParser.validate_all(config_pages)
+            PipelineParser.parse_all(config_pages)
+            assert set(PipelineParser.unique_stages.keys()) == set(
+                [
+                    f"{plname}.{stage.get('label')}"
+                    for page in config_pages
+                    for plname, stages in page.items()
+                    for stage in stages
+                ]
+            )
+
+        assert_pipeline_config([{"main": config, "alt": config}])
+        assert_pipeline_config([{"alt": config}, {"main": config}])
+
+    def test_config_nested_pipelines_valid(self):
+        config_main = [
+            PipelineBuilder.create_node_config("A", "SOURCE", use="a"),
+            # nested pipeline with label identical to label.
+            # take_from keys must be unique from the stages in the sub pipeline
+            PipelineBuilder.create_pipeline_node_config("alt", "TRANSFORM", "alt", take_from={"main": "A"}),
+            PipelineBuilder.create_node_config("C", "TRANSFORM", use="c", take_from={"value": "B"}),
+            PipelineBuilder.create_node_config("D", "TRANSFORM", use="d", take_from={"value": "C"}),
+        ]
+        config_alt = [
+            PipelineBuilder.create_node_config("A", "SOURCE", use="a"),
+            PipelineBuilder.create_node_config("B", "TRANSFORM", use="b", take_from={"value": "main"}),
+            # nested pipeline with label identical to current pipeline label, but pipeline name is different
+            PipelineBuilder.create_pipeline_node_config(
+                "alt", "TRANSFORM", "alt2", take_from={"alt": "A", "main": "B", "orig": "main"}
+            ),
+        ]
+        config_alt2 = [
+            PipelineBuilder.create_node_config(
+                "alt2", "TRANSFORM", use="e", take_from={"secondary": "alt", "primary": "main", "orig": "orig"}
+            ),
+        ]
+
+        def assert_pipeline_config(config_pages):
+            PipelineParser.validate_all(config_pages)
+            PipelineParser.parse_all(config_pages)
+            assert set(PipelineParser.unique_stages.keys()) == set(
+                [
+                    "main.A",
+                    "main.alt",
+                    "main.alt.A",
+                    "main.alt.B",
+                    "main.alt.alt",
+                    "main.alt.alt.alt2",
+                    "main.C",
+                    "main.D",
+                    "alt.A",
+                    "alt.B",
+                    "alt.alt",
+                    "alt.alt.alt2",
+                    "alt2.alt2",
+                ]
+            )
+
+        assert_pipeline_config([{"main": config_main, "alt": config_alt, "alt2": config_alt2}])
+        assert_pipeline_config([{"alt": config_alt}, {"main": config_main, "alt2": config_alt2}])
 
 
 class TestPipeline:

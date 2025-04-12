@@ -108,15 +108,16 @@ should do is contained there
 
 ## Immediate todo:
 
-- [x] basic CI/CD (pylint, pytest is enough)
+- [x] basic CI/CD
 - [x] create sink tasks folder
 - [x] simple source task: `csv_to_df`
-- [ ] simple source task: `load_json`
-- [ ] simple transform task: `json_to_df`
 - [x] simple sink task: `df_to_csv`
-- [x] write node and pipeline tests (rn i think it works but is untested LMAO)
-- [ ] `PipelineParser` / `PipelineRegistry`
+- [x] write node and pipeline tests
+- [x] simple json endpoint recorder tool (2025-04-02)
+- [-] `PipelineParser` / `PipelineRegistry` (WIP: 2025-04-02)
 - [ ] `ModelParser` / `ModelRegistry`
 - [ ] `ServiceParser` / `ServiceRegistry`
 - [ ] `TransformParser` / `TransformRegistry`
 - [ ] transform templated task: `mapping`
+- [ ] simple source task: `load_json`
+- [ ] simple transform task: `json_to_df`

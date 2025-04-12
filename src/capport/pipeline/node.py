@@ -21,9 +21,12 @@ class PipelineNode:
     default_callable: Callable = _dummy_fn
 
     def _get_node_template(self, use: str, node_type: PipelineNodeType) -> Callable:
-        # do not remove
+        """
+        TODO:
+        Gets the method of any node by type.
+        The signature is always (_this_node: PipelineNode, **kwargs)
+        """
         if use == "__noop":
-            # the signature is (_this_node: PipelineNode, **kwargs)
             return self.default_callable
         if node_type == PipelineNodeType.TRANSFORM:
             Logger.debug("lookup transformtable for task")

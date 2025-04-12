@@ -16,6 +16,9 @@ pipeline:
     #   take_from: 
     #     data: cs_player_ids
     #     model_name: <model_name_in_registry>
+    - label: grab_other
+      node_type: SINK
+      pipeline: other
 
   # each pipeline item is a node
   # bulk_player_data:

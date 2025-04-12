@@ -13,6 +13,10 @@ def now(timezone: str = DEFAULT_TIMEZONE) -> dt.datetime:
     return dt.datetime.astimezone(tz(timezone))
 
 
+def strftime(datetime: dt.datetime, fmt: str = "%Y-%m-%dT%H:%M:%S") -> str:
+    return datetime.strftime(fmt)
+
+
 def strptime(datetime_str: str) -> dt.datetime:
     for fmt in RECOGNIZED_DT_FORMATS:
         try:

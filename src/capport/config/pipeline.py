@@ -36,3 +36,129 @@ VERY IMPORTANTLY EVERY TEMPLATE TASK MUST BE ASYNC.
 Eventually PipelineParser should validate that the pipeline is a DAG
 (but just trust ourselves for now).
 """
+
+from copy import copy
+from dataclasses import dataclass
+
+from capport.config.common import ConfigParser
+from capport.tools.graph import Edge, Graph, TNode
+from capport.tools.logger import Logger
+
+ALLOWED_NODE_TYPES = ["SOURCE", "TRANSFORM", "SINK"]
+
+
+@dataclass
+class NodeConfig:
+    label: str
+    node_type: str
+    use: str | None
+    args: dict | None
+    take_from: dict | None
+
+
+class PipelineParser(ConfigParser):
+    pipeline_graph: Graph
+    configs: dict[str, list]
+
+    @classmethod
+    def assert_valid_stage_config_return_is_final(cls, stage_config: dict) -> bool:
+        # shared behaviour
+        assert "label" in stage_config
+        assert stage_config.get("node_type") in ALLOWED_NODE_TYPES
+        if stage_config["node_type"] == "SOURCE":
+            if "take_from" in stage_config:
+                Logger.warn(f"take_from is ignored in SOURCE node: {stage_config}")
+        else:
+            assert "take_from" in stage_config
+
+        if "use" in stage_config:
+            return True  # final i.e. no more unpacking.
+        if "pipeline" in stage_config:
+            return False  # non-final i.e. pipeline node.
+        raise Exception("Unknown stage type (neither node_type/pipeline)")
+
+    @classmethod
+    def validate_all(cls, config_pages: list[dict[str, dict]]):
+        """
+        config_pages: page(dict) -> pipeline(str) -> stage(dict)
+        Checks no dupes, builds pipeline dependency graph
+        """
+
+        all_pipelines = [pipeline for page in config_pages for pipeline in page.items()]
+        for _, pipeline in all_pipelines:
+            for stage in pipeline:
+                if "label" not in stage:
+                    raise Exception(f"label not found in stage: {stage}")
+                if not isinstance(stage.get("label"), str):
+                    raise Exception(f"label not cstr in stage: {stage}")
+        all_pipeline_names = [name for name, _ in all_pipelines]
+        cls.pipeline_names = all_pipeline_names
+
+        cls.assert_no_duplicates(all_pipeline_names)
+        tnodes = dict(all_pipelines)
+        edges = []
+        for name, pipeline in tnodes.items():
+            for stage in pipeline:
+                if "pipeline" in stage:
+                    pfrom = name
+                    pto = stage.get("pipeline")
+                    assert isinstance(pto, str)
+                    edges.append(Edge(pfrom, pto))
+        cls.pipeline_graph = Graph(tnodes, edges)
+        cls.configs = tnodes
+        assert not cls.pipeline_graph.is_cyclic()
+
+    @classmethod
+    def parse_all(cls, config_pages: list[dict[str, dict]]):
+        """
+        Builds all unique stages that pipelines later utilize to build.
+        At this point the correctness/availability of each stage's requested take_from variables isn't handled yet.
+        """
+        cls.unique_stages: dict[str, NodeConfig] = {}
+        if not cls.pipeline_graph or not cls.configs:
+            Logger.warn("Running validate_all first...")
+            cls.validate_all(config_pages)
+        Logger.log(f"Processing pipelines: {[k.key for k in cls.pipeline_graph.table.values()]}")
+
+        def build_nodes(pipeline: TNode, pipeline_id: str, label_stack: list[str]):
+            label_stack.append(pipeline_id)
+            stages = [(stage, cls.assert_valid_stage_config_return_is_final(stage)) for stage in pipeline.value]
+            final_stages = [stage for stage, is_final in stages if is_final]
+            nested_pipeline_stages = [stage for stage, is_final in stages if not is_final]
+            for stage in final_stages:
+                ukey = f"{'.'.join(label_stack)}.{stage.get('label')}"
+                cls.unique_stages[ukey] = NodeConfig(
+                    label=ukey,
+                    node_type=stage.get("node_type"),
+                    use=stage.get("use"),
+                    args=stage.get("args"),
+                    take_from=stage.get("take_from"),
+                )
+            for stage in nested_pipeline_stages:
+                ukey = f"{'.'.join(label_stack)}.{stage.get('label')}"
+                cls.unique_stages[ukey] = NodeConfig(
+                    label=ukey,
+                    node_type="TRANSFORM",  #
+                    use="convert_vars",  # TODO: Replace with standard conversion use node name
+                    args=stage.get("args"),
+                    take_from=stage.get("take_from"),
+                )
+                # breakpoint()
+                build_nodes(cls.pipeline_graph.table[stage.get("pipeline")], stage.get("label"), label_stack)
+            label_stack.pop()
+
+        label_stack = []
+        for pipeline in cls.pipeline_graph.table.values():
+            build_nodes(pipeline, pipeline.key, label_stack)
+
+    @classmethod
+    def validate(cls, config_id: str):
+        # first validate no duplicate unique_stages at all
+        ukeys = [u.key for u in cls.unique_stages]
+        cls.assert_no_duplicates(ukeys)
+
+        if config_id not in cls.pipeline_graph.table:
+            raise Exception(f"{config_id} not found amongst pipelines: [{cls.pipeline_names}]")
+
+        cls.unique_stage_table = {u.key: u for u in cls.unique_stages}
+        pipeline = cls.pipeline_graph.table.get(config_id).value

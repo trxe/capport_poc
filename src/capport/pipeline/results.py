@@ -9,7 +9,7 @@ class PipelineResults:
         self.started = {x: False for x in labels}
         self.completed = {x: asyncio.Event() for x in labels}
         self.results = {}
-        # very rough synchronization currently
+        # very coarse grained synchronization currently
         self.started_mutex = asyncio.Lock()
         self.results_mutex = asyncio.Lock()
 

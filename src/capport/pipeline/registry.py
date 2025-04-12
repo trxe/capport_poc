@@ -1,0 +1,2 @@
+class PipelineRegistry:
+    pass

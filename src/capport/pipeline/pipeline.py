@@ -7,11 +7,19 @@ from capport.tools.logger import Logger
 
 
 class Pipeline:
-    # must validate if it is 1. a DAG; 2. has only unique keys
     def validate(self) -> bool:
+        """
+        TODO:
+        Must meet 2 conditions:
+        1. is DAG
+        2. all keys are unique
+        """
         return True
 
     def __init__(self, name: str, node_configs: list[dict]):
+        """
+        node_configs must alr be fully unpacked
+        """
         self.name = name
         self.nodes: dict[str, PipelineNode] = {nc["label"]: PipelineNode(**nc) for nc in node_configs}
         # self.sinks = [label for label, node in self.nodes.items() if node.is_sink()]
